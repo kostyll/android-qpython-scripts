@@ -1,5 +1,5 @@
 import androidhelper
 droid = androidhelper.Android()
 
-contacts = droid.viewContacts()
+contacts = droid.contactsGet()
 print contacts
