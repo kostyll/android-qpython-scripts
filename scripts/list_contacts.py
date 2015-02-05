@@ -1,3 +1,5 @@
+#-*-coding:utf8;-*-
+#qpy:2
 import androidhelper
 droid = androidhelper.Android()
 
