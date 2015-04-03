@@ -106,6 +106,21 @@ class ConsoleClient(Client):
                 print output
 
 
+class AndroidConsoleClient(ConsoleClient):
+    def __init__(self,host,port,command):
+        self.host,self.port = host,port
+        self.command = command
+        self.sock = socket.socket()
+        self.sock.bind((self.host,int(self.port)))
+        self.sock.listen(3)
+
+    def run(self):
+        while  True:
+            conn,info = self.sock.accept()
+            conn.send(self.command+'\n')
+            ConsoleClient.run(self)
+
+
 class Server(NetworkCommuticator):
     def __init__(self,host,port,command):
         self.sock = socket.socket()
@@ -126,30 +141,34 @@ class Server(NetworkCommuticator):
         conn.send(self.convert_uint_to_data(length))
         conn.send(result)
 
+    def handle_new_connection(self,conn):
+        initial_data = conn.recv(1024)
+        command = self.parse_initial_data(initial_data)
+        print "asked command = %s" % command
+        if self.command != command:
+            conn.close()
+            return
+        process_communicator = ProcessCommunicator(command)
+        process_communicator.start()
+        try:
+            while True:
+                input_data = self.get_command(conn)
+                print "got data [%s]" % input_data
+                output = process_communicator.communicate(input=input_data)
+                print "result [%s]" % output
+                self.put_result(conn, output)
+        except socket_error:
+            conn.close()
+
     def run(self):
         while True:
             conn,info = self.sock.accept()
             print "New connection accepted!"
-            initial_data = conn.recv(1024)
-            command = self.parse_initial_data(initial_data)
-            print "asked command = %s" % command
-            if self.command != command:
-                conn.close()
-                continue
-            process_communicator = ProcessCommunicator(command)
-            process_communicator.start()
-            try:
-                while True:
-                    input_data = self.get_command(conn)
-                    print "got data [%s]" % input_data
-                    output = process_communicator.communicate(input=input_data)
-                    print "result [%s]" % output
-                    self.put_result(conn, output)
-            except socket_error:
-                conn.close()
+            self.handle_new_connection(conn)
+            
 
 
-class AndroidServer(Server):
+class AndroidServer(object):
     """
     import androidhelper
     droid = androidhelper.Android()
@@ -172,14 +191,23 @@ class AndroidServer(Server):
         response = droid.dialogGetInput("COMMAND",'what\'s command to interact with ?')
         command = response.result
 
-        Server.__init__(self, host, port, command)
+        Client.__init__(self, host, port, command)
+
+    def run(self):
+        self.handle_new_connection()
 
 
 def main():
     if android is None:
-        script,host,port,command,client = os.sys.argv[:5]
-        print "input args: [host = %s, port = %s, command = %s, client = %s] " % (host,port,command,client)
+        script,host,port,command,client,as_android_client = os.sys.argv[:6]
+        print "input args: [host = %s, port = %s, command = %s, client = %s, as_android_client = %s ] " % (host,port,command,client,as_android_client)
         client = client.lower() == "true"
+        as_android_client = as_android_client.lower() == 'true'
+
+        if as_android_client:
+            print "Starting client as a server for android client"
+            console_client = AndroidConsoleClient(host, port, command)
+            console_client.run()
 
         if client :
             print "Starting client"
