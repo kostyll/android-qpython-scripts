@@ -55,9 +55,26 @@ class Server(object):
         self.sock.bind(('127.0.0.1',int(port)))
         self.sock.listen()
 
+    def parse_initial_data(self,data):
+        return data.split('\n')[0]
+
+    def get_command(self,conn):
+        data = conn.read(4096)
+        length,dummy,buffer = data.partition('\n')
+        length = int(length)
+
     def run(self):
         while True:
             conn,info = self.sock.accept()
+            initial_data = conn.read(1024)
+            command = self.parse_initial_data(initial_data)
+            process_communicator = ProcessCommunicator(command)
+            try:
+                while True:
+                    input_data = self.get_command(conn)
+                    output = process_communicator.communicate(input=input_data)
+                    conn.write(output)
+
 
 def main():
     if android is None:
