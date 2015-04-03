@@ -189,6 +189,7 @@ class AndroidServer(Server):
 
         response = droid.dialogGetInput("COMMAND",'what\'s command to interact with ?','sh')
         command = response.result
+        self.command = command
 
         self.host,self.port = host,port
         self.sock = socket.socket()
