@@ -117,8 +117,9 @@ class AndroidConsoleClient(ConsoleClient):
     def run(self):
         while  True:
             conn,info = self.sock.accept()
-            self.input_command = lambda self: raw_input("[%s:android]$ " % info[0])
+            ConsoleClient.input_command = lambda self: raw_input("[%s:android]$ " % info[0]).strip()
             conn.send(self.command+'\n')
+            self.sock = conn
             ConsoleClient.run(self)
 
 
