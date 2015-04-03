@@ -149,6 +149,32 @@ class Server(NetworkCommuticator):
                 conn.close()
 
 
+class AndroidServer(Server):
+    """
+    import androidhelper
+    droid = androidhelper.Android()
+    response = droid.dialogGetInput("Hello", "What is your name?")
+    print response
+    message = 'Hello, %s!' % response.result
+    droid.makeToast(message)
+
+    """
+
+    def __init__(self):
+        droid = android.Android()
+        
+        response = droid.dialogGetInput("IP",'what\'s IP to connect ?')
+        host = response.result
+
+        response = droid.dialogGetInput("PORT",'what\'s port to connect ?')
+        port = response.result
+
+        response = droid.dialogGetInput("COMMAND",'what\'s command to interact with ?')
+        command = response.result
+
+        Server.__init__(self, host, port, command)
+
+
 def main():
     if android is None:
         script,host,port,command,client = os.sys.argv[:5]
@@ -164,7 +190,8 @@ def main():
             server = Server(host, port, command)
             server.run()
     else:
-        pass
+        android_server = AndroidServer()
+        android_server.run()
 
 if __name__ == "__main__":
     main()
