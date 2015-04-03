@@ -41,9 +41,30 @@ class ProcessCommunicator(object):
                 return buffer.getvalue()
 
 
+class Client(object):
+
+    def __init__(self,host,port,command):
+        self.sock = socket.socket()
+        self.sock.connect((host,port))
+
+        self.sock.send(command+'\n')
+
+class Server(object):
+    def __init__(self,host,port,command):
+        self.sock = socket.socket()
+        self.sock.bind(('127.0.0.1',int(port)))
+        self.sock.listen()
+
+    def run(self):
+        while True:
+            conn,info = self.sock.accept()
+
 def main():
     if android is None:
-        host,port = os.sys.argv[:2]
+        host,port,command,client = os.sys.argv[:4]
+        client = client.lower() == "true":
     else:
         pass
+
+
 
