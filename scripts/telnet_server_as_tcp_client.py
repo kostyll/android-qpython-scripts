@@ -86,7 +86,10 @@ class Client(NetworkCommuticator):
 
     def get_result(self,conn):
         result_length = self.get_uint(conn)
-        result = conn.recv(result_length)
+        if result_length > 0
+            result = conn.recv(result_length)
+        else: 
+            result = ''
         return result
 
 
@@ -135,7 +138,10 @@ class Server(NetworkCommuticator):
 
     def get_command(self,conn):
         length=self.get_uint(conn)
-        command = conn.recv(length)
+        if length > 0:
+            command = conn.recv(length)
+        else:
+            command = ''
         return command
 
     def put_result(self,conn,result):
