@@ -37,7 +37,7 @@ class ProcessCommunicator(object):
         buffer = BytesIO()
         if input is not None:
             self.p.stdin.write(input)
-        time.sleep(3)
+        time.sleep(5)
         while True:
             try:
                 chank = read(self.p.stdout.fileno(),1024)
@@ -148,10 +148,13 @@ class Server(NetworkCommuticator):
         if self.command != command:
             conn.close()
             return
+        print "Starting process_communicator"
         process_communicator = ProcessCommunicator(command)
         process_communicator.start()
+        print "process_communicator was started"
         try:
             while True:
+                print "Getting command..."
                 input_data = self.get_command(conn)
                 print "got data [%s]" % input_data
                 output = process_communicator.communicate(input=input_data)
