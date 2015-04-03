@@ -86,7 +86,7 @@ class Client(NetworkCommuticator):
 
     def get_result(self,conn):
         result_length = self.get_uint(conn)
-        if result_length > 0
+        if result_length > 0:
             result = conn.recv(result_length)
         else: 
             result = ''
