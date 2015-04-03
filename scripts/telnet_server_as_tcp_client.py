@@ -111,7 +111,7 @@ class AndroidConsoleClient(ConsoleClient):
         self.host,self.port = host,port
         self.command = command
         self.sock = socket.socket()
-        self.sock.bind((self.host,int(self.port)))
+        self.sock.bind(('0.0.0.0',int(self.port)))
         self.sock.listen(3)
 
     def run(self):
@@ -195,7 +195,7 @@ class AndroidServer(Server):
         self.sock.connect((host,int(port)))
 
     def run(self):
-        self.handle_new_connection()
+        self.handle_new_connection(self.sock)
 
 
 def main():
