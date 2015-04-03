@@ -167,7 +167,6 @@ class Server(NetworkCommuticator):
             self.handle_new_connection(conn)
             
 
-
 class AndroidServer(Server):
     """
     import androidhelper
@@ -191,7 +190,9 @@ class AndroidServer(Server):
         response = droid.dialogGetInput("COMMAND",'what\'s command to interact with ?','sh')
         command = response.result
 
-        Client.__init__(self, host, port, command)
+        self.host,self.port = host,port
+        self.sock = socket.socket()
+        self.sock.connect((host,int(port)))
 
     def run(self):
         self.handle_new_connection()
