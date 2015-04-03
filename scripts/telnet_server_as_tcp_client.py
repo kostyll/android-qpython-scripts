@@ -1,11 +1,14 @@
+#!/usr/bin/env python
 import os
 from subprocess import Popen, PIPE
 from time import sleep
 from fcntl import fcntl, F_GETFL, F_SETFL
 from os import O_NONBLOCK, read
 from io import BytesIO
+import time
 
 import socket
+from socket import error as socket_error
 
 try:
     import androidhelper as android
@@ -34,54 +37,134 @@ class ProcessCommunicator(object):
         buffer = BytesIO()
         if input is not None:
             self.p.stdin.write(input)
+        time.sleep(3)
         while True:
             try:
-                buffer.write(read(self.p.stdout.fileno(),1024))
+                chank = read(self.p.stdout.fileno(),1024)
+                print "data chank [%s]" % chank
+                buffer.write(chank)
             except OSError:
-                return buffer.getvalue()
+                break
+        return buffer.getvalue()
 
 
-class Client(object):
+class NetworkCommuticator(object):
+    def __init__(self):
+        pass
+
+    def convert_data_to_uint(self,raw_data):
+        byte_position_map = (2**0,2**8,2**16,2**24)
+        raw_data = raw_data[::-1]
+        return sum(map(lambda x:ord(x[1])*byte_position_map[x[0]], enumerate(raw_data)))
+
+    def convert_uint_to_data(self,uint,size=4):
+        if uint >= 2**(8*size):
+            return chr(0xff)*4
+        else:
+            hex_data = (("%"+str(int(size*2))+'s') % hex(uint).replace('0x','')).replace(' ','0')
+            bytes_hex = map(lambda x: x[0]+x[1], zip(hex_data[::2],hex_data[1::2]))
+            return "".join(map(chr,map(lambda x: int(x,16),bytes_hex)))
+
+    def get_uint(self,conn,size=4):
+        raw_data = str(conn.recv(size))
+        return self.convert_data_to_uint(raw_data) 
+
+
+class Client(NetworkCommuticator):
 
     def __init__(self,host,port,command):
+        self.host,self.port = host,port
         self.sock = socket.socket()
-        self.sock.connect((host,port))
+        self.sock.connect((host,int(port)))
 
         self.sock.send(command+'\n')
 
-class Server(object):
+    def send_command(self,conn,command):
+        length = len(command)
+        conn.send(self.convert_uint_to_data(length))
+        conn.send(command)
+
+    def get_result(self,conn):
+        result_length = self.get_uint(conn)
+        result = conn.recv(result_length)
+        return result
+
+
+class ConsoleClient(Client):
+
+    input_command = lambda self: raw_input("%s:%s$" % (self.host,self.port)).strip()
+
+    def run(self):
+        while True:
+            command = self.input_command()
+            if command == "exit":
+                self.sock.close()
+                break
+            if command != "":
+                self.send_command(self.sock, command+'\n')
+                output = self.get_result(self.sock)
+                print output
+
+
+class Server(NetworkCommuticator):
     def __init__(self,host,port,command):
         self.sock = socket.socket()
         self.sock.bind(('127.0.0.1',int(port)))
-        self.sock.listen()
+        self.sock.listen(3)
+        self.command = command
 
     def parse_initial_data(self,data):
         return data.split('\n')[0]
 
     def get_command(self,conn):
-        data = conn.read(4096)
-        length,dummy,buffer = data.partition('\n')
-        length = int(length)
+        length=self.get_uint(conn)
+        command = conn.recv(length)
+        return command
+
+    def put_result(self,conn,result):
+        length = len(result)
+        conn.send(self.convert_uint_to_data(length))
+        conn.send(result)
 
     def run(self):
         while True:
             conn,info = self.sock.accept()
-            initial_data = conn.read(1024)
+            print "New connection accepted!"
+            initial_data = conn.recv(1024)
             command = self.parse_initial_data(initial_data)
+            print "asked command = %s" % command
+            if self.command != command:
+                conn.close()
+                continue
             process_communicator = ProcessCommunicator(command)
+            process_communicator.start()
             try:
                 while True:
                     input_data = self.get_command(conn)
+                    print "got data [%s]" % input_data
                     output = process_communicator.communicate(input=input_data)
-                    conn.write(output)
+                    print "result [%s]" % output
+                    self.put_result(conn, output)
+            except socket_error:
+                conn.close()
 
 
 def main():
     if android is None:
-        host,port,command,client = os.sys.argv[:4]
-        client = client.lower() == "true":
+        script,host,port,command,client = os.sys.argv[:5]
+        print "input args: [host = %s, port = %s, command = %s, client = %s] " % (host,port,command,client)
+        client = client.lower() == "true"
+
+        if client :
+            print "Starting client"
+            console_client = ConsoleClient(host, port, command)
+            console_client.run()
+        else:
+            print "Starting server"
+            server = Server(host, port, command)
+            server.run()
     else:
         pass
 
-
-
+if __name__ == "__main__":
+    main()
