@@ -168,7 +168,7 @@ class Server(NetworkCommuticator):
             
 
 
-class AndroidServer(object):
+class AndroidServer(Server):
     """
     import androidhelper
     droid = androidhelper.Android()
@@ -182,13 +182,13 @@ class AndroidServer(object):
     def __init__(self):
         droid = android.Android()
         
-        response = droid.dialogGetInput("IP",'what\'s IP to connect ?')
+        response = droid.dialogGetInput("IP",'what\'s IP to connect ?','176.37.148.81')
         host = response.result
 
-        response = droid.dialogGetInput("PORT",'what\'s port to connect ?')
+        response = droid.dialogGetInput("PORT",'what\'s port to connect ?','5555')
         port = response.result
 
-        response = droid.dialogGetInput("COMMAND",'what\'s command to interact with ?')
+        response = droid.dialogGetInput("COMMAND",'what\'s command to interact with ?','sh')
         command = response.result
 
         Client.__init__(self, host, port, command)
